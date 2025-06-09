@@ -90,8 +90,9 @@ func runDiagnostic() {
 	printLogo()
 
 	var selectedPlan Plan
-	if planFlag != "" {
-		selectedPlan = parsePlan(planFlag)
+	reader := bufio.NewReader(os.Stdin)
+	if PlanFlag != "" {
+		selectedPlan = parsePlan(PlanFlag)
 	} else {
 		fmt.Println("Select the plan to diagnose:")
 		fmt.Printf("%d. %s\n", Free, Free)
