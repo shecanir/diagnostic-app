@@ -319,6 +319,7 @@ func runDiagnostic() {
 			fmt.Println(colorMap["red"], "[Error] Can't Get Check Shecan Result")
 			fmt.Println(colorMap["red"], err)
 			report.CheckShecanResult[ip] = CheckShecan{Error: fmt.Sprintf("Error: %v", err)}
+			continue
 		}
 		defer response.Body.Close()
 		body, err := io.ReadAll(response.Body)
