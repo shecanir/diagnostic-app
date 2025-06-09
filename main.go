@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Plan type representing different diagnostic plans
@@ -79,6 +81,11 @@ func contains(slice []string, str string) bool {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Print(colorMap["yellow"], "[Warning] .env file not found, using default values", colorMap["reset"])
+	}
+
 	if err := Execute(); err != nil {
 		fmt.Println(colorMap["red"], "[Error]", err)
 		os.Exit(1)
