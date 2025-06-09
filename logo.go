@@ -6,13 +6,13 @@ import (
 
 var colorMap = map[string]string{
 	"orange": "\033[38;5;208m", // Orange
-	"green": "\033[32m", // Green
-	"white": "\033[37m", // White
-	"grey": "\033[90m", // Grey
-	"red": "\033[31m", // Red
-	"blue": "\033[34m", // Blue
-	"yellow": "\033[33m", // Yellow
-	"reset": "\033[0m", // Reset
+	"green":  "\033[32m",       // Green
+	"white":  "\033[37m",       // White
+	"grey":   "\033[90m",       // Grey
+	"red":    "\033[31m",       // Red
+	"blue":   "\033[34m",       // Blue
+	"yellow": "\033[33m",       // Yellow
+	"reset":  "\033[0m",        // Reset
 }
 
 func printLogo() {

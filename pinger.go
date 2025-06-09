@@ -11,7 +11,7 @@ import (
 )
 
 func pingServer(server string, count int, timeout int) (float64, error) {
-	
+
 	var cmd *exec.Cmd
 
 	// Choose appropriate ping command based on OS
@@ -40,9 +40,9 @@ func pingServer(server string, count int, timeout int) (float64, error) {
 func extractAvgRTT(output string) (float64, error) {
 	// Regex patterns for different OS outputs
 	patterns := []string{
-		`Average = (\d+)ms`,                                             // Windows
+		`Average = (\d+)ms`, // Windows
 		`min/avg/max/stddev = [\d.]+/([\d.]+)/[\d.]+/(?:[\d.]+|nan) ms`, // Linux/macOS (handles 'nan')
-	}	
+	}
 
 	for _, pattern := range patterns {
 		re := regexp.MustCompile(pattern)
@@ -58,13 +58,11 @@ func extractAvgRTT(output string) (float64, error) {
 	return -1, fmt.Errorf("could not parse ping output")
 }
 
-
-
 func Ping(server string, count int, timeout int) float64 {
-	fmt.Printf("%sPinging %s...\n",colorMap["green"], server)
-	ping,err := pingServer(server, count, timeout)
+	fmt.Printf("%sPinging %s...\n", colorMap["green"], server)
+	ping, err := pingServer(server, count, timeout)
 	if err != nil {
-		fmt.Println(colorMap["red"],"[Error] Error pinging server:", err)
+		fmt.Println(colorMap["red"], "[Error] Error pinging server:", err)
 	}
 	var color string
 	if ping > 600 || ping == -1 {
