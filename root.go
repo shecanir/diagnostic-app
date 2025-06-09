@@ -10,6 +10,9 @@ var PlanFlag string
 var rootCmd = &cobra.Command{
 	Use:   "diagnostic",
 	Short: "Run DNS diagnostic tool",
+	Run: func(cmd *cobra.Command, args []string) {
+		runDiagnostic()
+	},
 }
 
 func Execute() error {
