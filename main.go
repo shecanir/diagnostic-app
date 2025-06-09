@@ -98,6 +98,7 @@ func runDiagnostic() {
 		fmt.Printf("%d. %s\n", Free, Free)
 		fmt.Printf("%d. %s\n", Pro, Pro)
 
+		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Enter your choice (1 or 2, default is Pro): ")
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
