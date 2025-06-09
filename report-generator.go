@@ -14,29 +14,29 @@ import (
 )
 
 type CheckShecan struct {
-	Code int `json:"code"`
+	Code   int    `json:"code"`
 	Result string `json:"result"`
-	Error string `json:"error"`
+	Error  string `json:"error"`
 }
 
 // Report struct to hold the system information
 type Report struct {
-	Hostname    string            `json:"hostname"`
-	OS          string            `json:"os"`
-	IPs         []string          `json:"local_ips"`
-	PublicIP    string            `json:"public_ip"`
-	Plan        Plan              `json:"plan"`
-	PingReports map[string]string `json:"ping_reports"`
-	LocalTime   string            `json:"local_time"`
-	RealTime    string            `json:"real_time"`
-	CPUInfo     string            `json:"cpu"`
-	MemoryInfo  string            `json:"memory"`
-	DiskInfo    string            `json:"disk"`
-	DNSServers  []string          `json:"dns_servers"`
-	RequestResult map[string]string `json:"request_result"`
-	NsLookup  	map[string][]DNSRecord `json:"ns_lookup"`
+	Hostname          string                 `json:"hostname"`
+	OS                string                 `json:"os"`
+	IPs               []string               `json:"local_ips"`
+	PublicIP          string                 `json:"public_ip"`
+	Plan              Plan                   `json:"plan"`
+	PingReports       map[string]string      `json:"ping_reports"`
+	LocalTime         string                 `json:"local_time"`
+	RealTime          string                 `json:"real_time"`
+	CPUInfo           string                 `json:"cpu"`
+	MemoryInfo        string                 `json:"memory"`
+	DiskInfo          string                 `json:"disk"`
+	DNSServers        []string               `json:"dns_servers"`
+	RequestResult     map[string]string      `json:"request_result"`
+	NsLookup          map[string][]DNSRecord `json:"ns_lookup"`
 	CheckShecanResult map[string]CheckShecan `json:"check_shecan_result"`
-	UpdaterLink string `json:"updater_link"` 
+	UpdaterLink       string                 `json:"updater_link"`
 }
 
 // getLocalIPs retrieves all local IPs
@@ -135,27 +135,27 @@ func getDNSServers() ([]string, error) {
 }
 
 func unique(elements []string) []string {
-		encountered := map[string]bool{}
-		result := []string{}
-	
-		for _, v := range elements {
-			if v == "" {
-				continue
-			}
-			if !encountered[v] {
-				encountered[v] = true
-				result = append(result, v)
-			}
+	encountered := map[string]bool{}
+	result := []string{}
+
+	for _, v := range elements {
+		if v == "" {
+			continue
 		}
-	
-		return result
-	
+		if !encountered[v] {
+			encountered[v] = true
+			result = append(result, v)
+		}
+	}
+
+	return result
+
 }
 
 // convert report to json
 func (r Report) String() (string, error) {
 	jsonData, err := json.MarshalIndent(r, "", "  ")
-	if (err != nil) {
+	if err != nil {
 		return "", err
 	}
 	return string(jsonData), nil
@@ -189,14 +189,14 @@ func initReport() Report {
 	publicIP, _ := getPublicIP()
 	cpu, memory, disk := getSystemInfo()
 	dnsServers, _ := getDNSServers()
-	
+
 	return Report{
-		Hostname: hostname,
-		OS:       runtime.GOOS,
-		IPs:      localIPs,
-		PublicIP: publicIP,
-		CPUInfo: cpu,
-		DiskInfo: disk,
+		Hostname:   hostname,
+		OS:         runtime.GOOS,
+		IPs:        localIPs,
+		PublicIP:   publicIP,
+		CPUInfo:    cpu,
+		DiskInfo:   disk,
 		MemoryInfo: memory,
 		DNSServers: dnsServers,
 	}

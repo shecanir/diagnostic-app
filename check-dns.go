@@ -41,7 +41,7 @@ func getDnsServer(plan Plan) []string {
 	}
 
 	return unique(strings.Split(string(body), "\n"))
-	
+
 }
 
 func checkDNS(plan Plan) []string {
@@ -55,8 +55,8 @@ func checkDNS(plan Plan) []string {
 		}
 		// ping the server for 4 times and return the average time
 		// print the server and the average time
-		ping:= Ping(server, 4, 2)
-		if (report.PingReports == nil) {
+		ping := Ping(server, 4, 2)
+		if report.PingReports == nil {
 			report.PingReports = make(map[string]string)
 		}
 		report.PingReports[server] = fmt.Sprintf("%.2f ms", ping)
@@ -64,7 +64,6 @@ func checkDNS(plan Plan) []string {
 
 	return dnsServers
 }
-
 
 func disableIPv6() {
 	switch runtime.GOOS {

@@ -1,0 +1,21 @@
+version: '3'
+
+vars:
+  BINARY: shecan-diagnostic
+
+tasks:
+  build-all:
+    desc: Build binaries for Linux, macOS and Windows
+    cmds:
+      - task: build
+        vars: {GOOS: linux, EXT: ""}
+      - task: build
+        vars: {GOOS: darwin, EXT: ""}
+      - task: build
+        vars: {GOOS: windows, EXT: ".exe"}
+
+  build:
+    internal: true
+    cmds:
+      - mkdir -p build/{{.GOOS}}
+      - CGO_ENABLED=0 GOOS={{.GOOS}} GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o build/{{.GOOS}}/{{.BINARY}}{{.EXT}}
