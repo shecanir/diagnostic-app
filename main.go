@@ -9,13 +9,10 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/spf13/cobra"
 )
 
 // Plan type representing different diagnostic plans
 type Plan int
-
 
 const (
 	Free Plan = iota + 1 // 1
@@ -47,23 +44,7 @@ func parsePlan(input string) Plan {
 
 var (
 	report Report = initReport()
-	rootCmd        = &cobra.Command{
-		Use:   "diagnostic",
-		Short: "Run DNS diagnostic tool",
-		Run: func(cmd *cobra.Command, args []string) {
-			_plan, _ := cmd.Flags().GetString("plan")
-			plan := parsePlan(strings.TrimSpace(_plan))
-			fmt.Println("Selected plan:", plan)
-			if plan != Free && plan != Pro {
-				fmt.Println("Invalid or no plan selected. Defaulting to Pro.")
-				plan = Pro
-			}
-			runDiagnostic()
-		},
-	}
 )
-
-
 
 // MarshalJSON converts the Plan enum to a JSON string
 func (p Plan) MarshalJSON() ([]byte, error) {
@@ -98,7 +79,7 @@ func contains(slice []string, str string) bool {
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := Execute(); err != nil {
 		fmt.Println(colorMap["red"], "[Error]", err)
 		os.Exit(1)
 	}
@@ -107,40 +88,43 @@ func main() {
 func runDiagnostic() {
 	// print the logo
 	printLogo()
-	fmt.Println("Select the plan to diagnose:")
-	fmt.Printf("%d. %s\n", Free, Free)
-	fmt.Printf("%d. %s\n", Pro, Pro)
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter your choice (1 or 2, default is Pro): ")
+	var selectedPlan Plan
+	if planFlag != "" {
+		selectedPlan = parsePlan(planFlag)
+	} else {
+		fmt.Println("Select the plan to diagnose:")
+		fmt.Printf("%d. %s\n", Free, Free)
+		fmt.Printf("%d. %s\n", Pro, Pro)
 
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-
-	selectedPlan := Pro // Default plan is Pro
-	switch input {
-		case "2", "": // If empty or "1", keep default as Pro
-		selectedPlan = Pro
-		case "1": 
-		selectedPlan = Free
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Enter your choice (1 or 2, default is Pro): ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		selectedPlan = Pro // Default plan is Pro
+		switch input {
+		case "2", "":
+			selectedPlan = Pro
+		case "1":
+			selectedPlan = Free
+		}
 	}
 	report.Plan = selectedPlan
 
 	// get shecan DNS servers based on the selected plan
 	shecanDNS := checkDNS(selectedPlan)
-	
+
 	// check os DNS servers if shecan not set return error check with report.DNSServers
-	if (len(shecanDNS) == 0) {
+	if len(shecanDNS) == 0 {
 		fmt.Println(colorMap["red"], "[Error] Can't Get Shecan DNS")
 		return
 	} else {
-		
 
 		// ask to check with os DNS servers
 		fmt.Print("Do you want to check with OS DNS servers? (y/n, default is n): ")
 		input, _ := reader.ReadString('\n')
 		input = strings.ToLower(strings.TrimSpace(input))
-		
+
 		if input == "y" {
 
 			shecanHasIPv6 := false
@@ -151,22 +135,21 @@ func runDiagnostic() {
 					break
 				}
 			}
-			
-			if (report.DNSServers == nil) {
+
+			if report.DNSServers == nil {
 				fmt.Println(colorMap["red"], "[Error] Can't Get OS DNS")
 				return
 			}
-			
-	
+
 			// if shecan DNS servers are not equal to OS DNS servers return error
-			if (len(shecanDNS) != len(report.DNSServers)) {
+			if len(shecanDNS) != len(report.DNSServers) {
 				fmt.Println(colorMap["red"], "[Error] DNS Servers are not equal", colorMap["reset"])
 				return
 			}
 			for _, dns := range shecanDNS {
 				// check dns servers are same (maybe order is different)
-				if (contains(report.DNSServers, dns)) {
-					if (!shecanHasIPv6 && strings.Contains(dns, ":")) {
+				if contains(report.DNSServers, dns) {
+					if !shecanHasIPv6 && strings.Contains(dns, ":") {
 						disableIPv6()
 					}
 					continue
@@ -191,7 +174,7 @@ func runDiagnostic() {
 		}
 		report.UpdaterLink = updaterLink
 	}
-	
+
 	// if updaterLink is not empty get the response of updaterLink and store it in report.UpdaterResponse
 	if report.UpdaterLink != "" {
 		response, err := HTTPRequest(report.UpdaterLink, "GET", "", "", "2")
@@ -210,13 +193,13 @@ func runDiagnostic() {
 		}
 		responseBodyStr := string(responseBody)
 
-		if (responseBodyStr == "nohost") {
+		if responseBodyStr == "nohost" {
 			fmt.Println(colorMap["red"], "[Error] Your Order not applied yet or your password is wrong")
 			return
-		} else if (responseBodyStr == "out of the range") {
+		} else if responseBodyStr == "out of the range" {
 			fmt.Println(colorMap["red"], "[Error] You Order registered as Static IP and your current IP is out of the range")
 			return
-		} else if (responseBodyStr == "invalid") {
+		} else if responseBodyStr == "invalid" {
 			fmt.Println(colorMap["red"], "[Error] Your updater link is not valid")
 			return
 		} else {
@@ -241,7 +224,7 @@ func runDiagnostic() {
 		report.NsLookup = make(map[string][]DNSRecord)
 	}
 	nslookupDomains := []string{"shecan.ir", "check.shecan.ir", "fail.shecan.ir"}
-	
+
 	for _, domain := range nslookupDomains {
 		report.NsLookup[domain] = NsLookup(domain)
 	}
@@ -254,7 +237,7 @@ func runDiagnostic() {
 	fmt.Println(colorMap["blue"], "[INFO] Checking shecan domains...")
 
 	for _, domain := range nslookupDomains[1:] {
-		response, err := HTTPRequest("https://" + domain, "GET", "", "", "2")
+		response, err := HTTPRequest("https://"+domain, "GET", "", "", "2")
 		if err != nil {
 			fmt.Println(colorMap["red"], "[Error] Can't Get", domain)
 			report.RequestResult[domain] = fmt.Sprintf("Error: %v", err)
@@ -316,7 +299,7 @@ func runDiagnostic() {
 
 	for _, ip := range IPs {
 		ping := Ping(ip, 2, 2)
-		report.PingReports[ip] =  fmt.Sprintf("%.2f ms", ping)
+		report.PingReports[ip] = fmt.Sprintf("%.2f ms", ping)
 	}
 
 	if report.CheckShecanResult == nil {
@@ -326,7 +309,7 @@ func runDiagnostic() {
 	fmt.Println(colorMap["blue"], "[INFO] Checking shecan Over IPS...")
 	// get the result of check.shecan.ir and store it in report.CheckShecanResult
 	for _, ip := range IPs {
-		if (ip == "") {
+		if ip == "" {
 			continue
 		}
 		fmt.Println(colorMap["blue"], "[INFO] Checking Shecan Over IP:", ip)
