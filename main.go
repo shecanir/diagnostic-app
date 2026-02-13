@@ -128,45 +128,7 @@ func runDiagnostic() {
 		return
 	} else {
 
-		// ask to check with os DNS servers
-		fmt.Print("Do you want to check with OS DNS servers? (y/n, default is n): ")
-		input, _ := reader.ReadString('\n')
-		input = strings.ToLower(strings.TrimSpace(input))
-
-		if input == "y" {
-
-			shecanHasIPv6 := false
-			// check shecanDNS has IPv6
-			for _, dns := range shecanDNS {
-				if strings.Contains(dns, ":") {
-					shecanHasIPv6 = true
-					break
-				}
-			}
-
-			if report.DNSServers == nil {
-				fmt.Println(colorMap["red"], "[Error] Can't Get OS DNS")
-				return
-			}
-
-			// if shecan DNS servers are not equal to OS DNS servers return error
-			if len(shecanDNS) != len(report.DNSServers) {
-				fmt.Println(colorMap["red"], "[Error] DNS Servers are not equal", colorMap["reset"])
-				return
-			}
-			for _, dns := range shecanDNS {
-				// check dns servers are same (maybe order is different)
-				if contains(report.DNSServers, dns) {
-					if !shecanHasIPv6 && strings.Contains(dns, ":") {
-						disableIPv6()
-					}
-					continue
-				} else {
-					fmt.Println(colorMap["red"], "[Error] DNS Servers are not equal", colorMap["reset"])
-					return
-				}
-			}
-		}
+		// os DNS comparison temporarily disabled
 	}
 
 	// if pro plan selected ask to get updaterLink and store it in report.UpdaterLink
