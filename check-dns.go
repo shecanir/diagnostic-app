@@ -49,18 +49,7 @@ func checkDNS(plan Plan) []string {
 	dnsServers := getDnsServer(plan)
 
 	fmt.Printf("\n%sChecking DNS servers...\n", colorMap["blue"])
-	for _, server := range dnsServers {
-		if server == "" {
-			continue
-		}
-		// ping the server for 4 times and return the average time
-		// print the server and the average time
-		ping := Ping(server, 4, 2)
-		if report.PingReports == nil {
-			report.PingReports = make(map[string]string)
-		}
-		report.PingReports[server] = fmt.Sprintf("%.2f ms", ping)
-	}
+	runConcurrentPings(dnsServers, 4, 2)
 
 	return dnsServers
 }

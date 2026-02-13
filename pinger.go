@@ -8,7 +8,12 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 )
+
+const maxPingConcurrency = 4
+
+var pingMu sync.Mutex
 
 func pingServer(server string, count int, timeout int) (float64, error) {
 
@@ -71,5 +76,25 @@ func Ping(server string, count int, timeout int) float64 {
 		color = colorMap["grey"] + "✅ "
 	}
 	fmt.Printf("%sAvg RTT: %.2f ms\n", color, ping)
+	recordPingResult(server, ping)
 	return ping
+}
+
+func recordPingResult(server string, ping float64) {
+	pingMu.Lock()
+	defer pingMu.Unlock()
+	if report.PingReports == nil {
+		report.PingReports = make(map[string]string)
+	}
+	report.PingReports[server] = fmt.Sprintf("%.2f ms", ping)
+}
+
+func hostAlreadyPinged(server string) bool {
+	pingMu.Lock()
+	defer pingMu.Unlock()
+	if report.PingReports == nil {
+		return false
+	}
+	_, ok := report.PingReports[server]
+	return ok
 }
