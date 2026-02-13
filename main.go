@@ -331,35 +331,6 @@ func runDiagnostic() {
 	}
 
 	runConcurrentPings(IPs, 2, 2)
-
-	if report.CheckShecanResult == nil {
-		report.CheckShecanResult = make(map[string]CheckShecan)
-	}
-
-	fmt.Println(colorMap["blue"], "[INFO] Checking shecan Over IPS...")
-	// get the result of check.shecan.ir and store it in report.CheckShecanResult
-	for _, ip := range IPs {
-		if ip == "" {
-			continue
-		}
-		fmt.Println(colorMap["blue"], "[INFO] Checking Shecan Over IP:", ip)
-		response, err := HTTPRequest(fmt.Sprintf("https://%s", ip), "GET", "", "Host: check.shecan.ir")
-		if err != nil {
-			fmt.Println(colorMap["red"], "[Error] Can't Get Check Shecan Result")
-			fmt.Println(colorMap["red"], err)
-			report.CheckShecanResult[ip] = CheckShecan{Error: fmt.Sprintf("Error: %v", err)}
-			continue
-		}
-		defer response.Body.Close()
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			fmt.Println(colorMap["red"], "[Error] Can't Read Check Shecan Result")
-			report.CheckShecanResult[ip] = CheckShecan{Error: fmt.Sprintf("Error reading body: %v", err), Code: response.StatusCode}
-		} else {
-			fmt.Println(colorMap["blue"], "[INFO] Check Shecan Result:", string(body))
-			report.CheckShecanResult[ip] = CheckShecan{Result: string(body), Code: response.StatusCode}
-		}
-	}
 	fmt.Println(colorMap["green"], "[Success] Report Generated Successfully")
 	_err := sendReport(report)
 	if _err != nil {

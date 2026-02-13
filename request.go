@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +35,14 @@ var DefaultConfig = RequestConfig{
 	Timeout:    10 * time.Second,
 	MaxRetries: 3,
 	RetryDelay: 100 * time.Millisecond,
+}
+
+var sharedCookieJar http.CookieJar
+
+func init() {
+	if jar, err := cookiejar.New(nil); err == nil {
+		sharedCookieJar = jar
+	}
 }
 
 // HTTPRequest sends an HTTP request with the specified URL, optional method, body, and headers.
@@ -65,37 +74,11 @@ func HTTPRequestWithContext(ctx context.Context, url string, rest ...string) (*h
 		}
 	}
 
-	// Create custom transport with TLS SNI
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			ServerName: overrideHost,
-			// InsecureSkipVerify: true, // Uncomment if using self-signed certs
-		},
-		DialContext: (&net.Dialer{
-			Timeout:   config.Timeout,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-	}
+	client := newHTTPClient(config.Timeout, overrideHost)
 
-	client := &http.Client{
-		Timeout:   config.Timeout,
-		Transport: transport,
-	}
-
-	// Prepare request
-	req, err := prepareRequest(ctx, url, rest...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare request: %w", err)
-	}
-
-	// Override Host header for HTTP/1.1
-	if overrideHost != "" {
-		req.Host = overrideHost
-	}
-
-	// Retry logic
 	var resp *http.Response
 	var lastErr error
+	challengeRetried := false
 
 	for attempt := 0; attempt <= config.MaxRetries; attempt++ {
 		select {
@@ -106,10 +89,29 @@ func HTTPRequestWithContext(ctx context.Context, url string, rest ...string) (*h
 				time.Sleep(time.Duration(attempt) * config.RetryDelay)
 			}
 
-			resp, lastErr = client.Do(req)
-			if lastErr == nil && resp.StatusCode < 500 {
-				return resp, nil
+			req, err := prepareRequest(ctx, url, rest...)
+			if err != nil {
+				return nil, fmt.Errorf("failed to prepare request: %w", err)
 			}
+
+			if overrideHost != "" {
+				req.Host = overrideHost
+			}
+
+			resp, lastErr = client.Do(req)
+			if lastErr == nil {
+				if shouldRetryForChallenge(resp, req.URL.Hostname(), challengeRetried) {
+					challengeRetried = true
+					discardResponse(resp)
+					attempt--
+					continue
+				}
+
+				if resp.StatusCode < 500 {
+					return resp, nil
+				}
+			}
+
 			if resp != nil {
 				resp.Body.Close()
 			}
@@ -159,4 +161,64 @@ func getStatusCode(resp *http.Response) int {
 		return http.StatusInternalServerError
 	}
 	return resp.StatusCode
+}
+
+func newHTTPClient(timeout time.Duration, overrideHost string) *http.Client {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			ServerName: overrideHost,
+			// InsecureSkipVerify: true, // Uncomment if using self-signed certs
+		},
+		DialContext: (&net.Dialer{
+			Timeout:   timeout,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+	}
+
+	client := &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}
+	if sharedCookieJar != nil {
+		client.Jar = sharedCookieJar
+	}
+
+	return client
+}
+
+func shouldRetryForChallenge(resp *http.Response, host string, alreadyRetried bool) bool {
+	if resp == nil || alreadyRetried {
+		return false
+	}
+	host = strings.ToLower(strings.TrimSpace(strings.Split(host, ":")[0]))
+	if !isShecanHost(host) {
+		return false
+	}
+
+	switch resp.StatusCode {
+	case http.StatusForbidden, http.StatusServiceUnavailable, http.StatusTooManyRequests:
+	default:
+		return false
+	}
+
+	if len(resp.Cookies()) == 0 && len(resp.Header["Set-Cookie"]) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func isShecanHost(host string) bool {
+	if host == "" {
+		return false
+	}
+	return host == "shecan.ir" || strings.HasSuffix(host, ".shecan.ir")
+}
+
+func discardResponse(resp *http.Response) {
+	if resp == nil || resp.Body == nil {
+		return
+	}
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
 }
